@@ -163,7 +163,7 @@ if uploaded_file is not None:
         st.write("CSVデータのプレビュー:")
         st.dataframe(df.head())
 
-    # pngの場合はデータフレームとして読み込む
+    # pngの場合は画像データとして読み込む
     if uploaded_file.name.endswith('.png'):
       image = Image.open(uploaded_file)
       st.image(image, caption="画像データのプレビュー", use_container_width=True)
