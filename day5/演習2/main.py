@@ -11,6 +11,7 @@ import pickle
 import time
 import great_expectations as gx
 
+
 class DataLoader:
     """データロードを行うクラス"""
 
@@ -125,7 +126,7 @@ class ModelTester:
 
     @staticmethod
     def create_preprocessing_pipeline():
-        """前処理パイプラインを作成"""
+        """前処理パイプラインを作成(sklearnのPipeline)"""
         numeric_features = ["Age", "Fare", "SibSp", "Parch"]
         numeric_transformer = Pipeline(
             steps=[
@@ -205,6 +206,7 @@ class ModelTester:
 
 
 # テスト関数（pytestで実行可能）
+# バリデーションのコードがしっかり異常を検知できるかをテスト
 def test_data_validation():
     """データバリデーションのテスト"""
     # データロード
