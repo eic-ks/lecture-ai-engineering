@@ -15,7 +15,8 @@ from sklearn.pipeline import Pipeline
 # テスト用データとモデルパスを定義
 DATA_PATH = os.path.join(os.path.dirname(__file__), "../data/Titanic.csv")
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "../models")
-MODEL_PATH = os.path.join(MODEL_DIR, "titanic_model.pkl")
+NOW_MODEL_PATH = os.path.join(MODEL_DIR, "now/titanic_model.pkl")
+PAST_MODEL_PATH = os.path.join(MODEL_DIR, "past/titanic_model.pkl")
 
 
 @pytest.fixture
@@ -94,19 +95,34 @@ def train_model(sample_data, preprocessor):
     # モデルの学習
     model.fit(X_train, y_train)
 
+    # バージョンの確認
+    if not os.path.exists(PAST_MODEL_PATH):
+        model_version = 1.0
+    else:
+        with open(PAST_MODEL_PATH, "rb") as f:
+            past_model_data = pickle.load(f)
+
+        if past_model_data.get("version") is not None:
+            model_version = past_model_data["version"] + 1.0
+        else:
+            model_version = 1.0
     # モデルの保存
+    data_to_save = {
+        "model": model,
+        "version": model_version,
+    }
     os.makedirs(MODEL_DIR, exist_ok=True)
-    with open(MODEL_PATH, "wb") as f:
-        pickle.dump(model, f)
+    with open(NOW_MODEL_PATH, "wb") as f:
+        pickle.dump(data_to_save, f)
 
     return model, X_test, y_test
 
 
 def test_model_exists():
     """モデルファイルが存在するか確認"""
-    if not os.path.exists(MODEL_PATH):
+    if not os.path.exists(NOW_MODEL_PATH):
         pytest.skip("モデルファイルが存在しないためスキップします")
-    assert os.path.exists(MODEL_PATH), "モデルファイルが存在しません"
+    assert os.path.exists(NOW_MODEL_PATH), "モデルファイルが存在しません"
 
 
 def test_model_accuracy(train_model):
@@ -171,3 +187,39 @@ def test_model_reproducibility(sample_data, preprocessor):
     assert np.array_equal(
         predictions1, predictions2
     ), "モデルの予測結果に再現性がありません"
+
+
+def test_compare_archivedmodel(train_model):
+    """過去モデルとの精度を比較"""
+    # モデルファイルが存在するか確認
+    if not os.path.exists(PAST_MODEL_PATH):
+        pytest.skip("アーカイブモデルファイルが存在しないためスキップします")
+    assert os.path.exists(NOW_MODEL_PATH), "アーカイブモデルファイルが存在しません"
+
+    now_model, X_test, y_test = train_model
+    # アーカイブされたモデル情報を取得
+    with open(PAST_MODEL_PATH, "rb") as f:
+        past_model_data = pickle.load(f)
+    past_model = past_model_data["model"]
+
+    # 予測と精度計算
+    y_pred_n = now_model.predict(X_test)
+    y_pred_p = past_model.predict(X_test)
+    accuracy_n = accuracy_score(y_test, y_pred_n)
+    accuracy_p = accuracy_score(y_test, y_pred_p)
+
+    assert (
+        accuracy_n >= accuracy_p
+    ), f"モデルの精度が下がっています: 【現在の精度{accuracy_n}：過去の精度{accuracy_p}】"
+
+
+def test_archive_model():
+    """モデルのアーカイブ"""
+    # 現在のモデル情報を取得
+    with open(NOW_MODEL_PATH, "rb") as f:
+        now_model_data = pickle.load(f)
+
+    # 過去のモデル情報へとアーカイブ
+    os.makedirs(MODEL_DIR, exist_ok=True)
+    with open(PAST_MODEL_PATH, "wb") as f:
+        pickle.dump(now_model_data, f)
