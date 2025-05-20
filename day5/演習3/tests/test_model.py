@@ -106,7 +106,7 @@ def train_model(sample_data, preprocessor):
             model_version = past_model_data["version"] + 1.0
         else:
             model_version = 1.0
-    # モデルの保存  
+    # モデルの保存
     data_to_save = {
         "model": model,
         "version": model_version,
@@ -188,6 +188,7 @@ def test_model_reproducibility(sample_data, preprocessor):
         predictions1, predictions2
     ), "モデルの予測結果に再現性がありません"
 
+
 def test_compare_archivedmodel(train_model):
     """過去モデルとの精度を比較"""
     # モデルファイルが存在するか確認
@@ -207,7 +208,10 @@ def test_compare_archivedmodel(train_model):
     accuracy_n = accuracy_score(y_test, y_pred_n)
     accuracy_p = accuracy_score(y_test, y_pred_p)
 
-    assert accuracy_n >= accuracy_p, f"モデルの精度が下がっています: 【現在の精度{accuracy_n}：過去の精度{accuracy_p}】"
+    assert (
+        accuracy_n >= accuracy_p
+    ), f"モデルの精度が下がっています: 【現在の精度{accuracy_n}：過去の精度{accuracy_p}】"
+
 
 def test_archive_model():
     """モデルのアーカイブ"""
@@ -219,4 +223,3 @@ def test_archive_model():
     os.makedirs(MODEL_DIR, exist_ok=True)
     with open(PAST_MODEL_PATH, "wb") as f:
         pickle.dump(now_model_data, f)
-
